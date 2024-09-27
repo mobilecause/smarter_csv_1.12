@@ -11,7 +11,7 @@ module SmarterCSV
 
   module Options
     DEFAULT_OPTIONS = {
-      acceleration: true, # if user wants to use accelleration or not
+      acceleration: false, # if user wants to use accelleration or not
       auto_row_sep_chars: 500,
       chunk_size: nil,
       col_sep: :auto, # was: ',',
@@ -44,6 +44,8 @@ module SmarterCSV
       value_converters: nil,
       verbose: false,
       with_line_numbers: false,
+      convert_empty_to_null: false,
+      keep_nils_nil: false
     }.freeze
 
     # NOTE: this is not called when "parse" methods are tested by themselves

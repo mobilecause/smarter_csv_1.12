@@ -118,7 +118,7 @@ module SmarterCSV
           # --- SPLIT LINE & DATA TRANSFORMATIONS ------------------------------------------------------------
           dataA, _data_size = parse(line, options, header_size)
 
-          dataA.map!{|x| x.strip} if options[:strip_whitespace]
+          dataA.map!{|x| x.nil? ? x : x.strip} if options[:strip_whitespace]
 
           # if all values are blank, then ignore this line
           next if options[:remove_empty_hashes] && (dataA.empty? || blank?(dataA))
