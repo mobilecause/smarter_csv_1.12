@@ -45,7 +45,7 @@ module SmarterCSV
     #
     def parse_csv_line_ruby(line, options, header_size = nil)
       return [] if line.nil?
-
+    
       line_size = line.size
       col_sep = options[:col_sep]
       col_sep_size = col_sep.size
@@ -54,15 +54,19 @@ module SmarterCSV
       elements = []
       start = 0
       i = 0
-
+    
       previous_char = ''
       while i < line_size
-        if line[i...i+col_sep_size] == col_sep && quote_count.even?
-          break if !header_size.nil? && elements.size >= header_size
-
-          elements << cleanup_quotes(line[start...i], quote)
+        if line[i...i + col_sep_size] == col_sep && quote_count.even?
+          break if !within_header_size?(header_size, elements)
+    
+          field = cleanup_quotes(line[start...i], quote)
+          
+          # Use keeps_nils_nil to handle nil and empty fields
+          elements << keeps_nils_nil(field, line, quote, start, options)
+    
           previous_char = line[i]
-          i += col_sep.size
+          i += col_sep_size
           start = i
         else
           quote_count += 1 if line[i] == quote && previous_char != '\\'
@@ -70,21 +74,51 @@ module SmarterCSV
           i += 1
         end
       end
-      elements << cleanup_quotes(line[start..-1], quote) if header_size.nil? || elements.size < header_size
+    
+      # Process the final field
+      field = cleanup_quotes(line[start..-1], quote)
+      elements << keeps_nils_nil(field, line, quote, start, options) if within_header_size?(header_size, elements)
+    
       [elements, elements.size]
     end
-
+    
     def cleanup_quotes(field, quote)
       return field if field.nil?
-
-      # return if field !~ /#{quote}/ # this check can probably eliminated
-
+    
+      # Strip leading and trailing whitespace
+      field = field.strip
+    
+      # Remove quotes only if they are present at both ends
       if field.start_with?(quote) && field.end_with?(quote)
         field.delete_prefix!(quote)
         field.delete_suffix!(quote)
       end
+    
+      # Replace escaped quotes ("" becomes ")
       field.gsub!("#{quote}#{quote}", quote)
       field
+    end    
+    
+    
+    def keeps_nils_nil(field, line, quote, start, options)
+      if options[:keep_nils_nil]
+        # If the option is enabled, treat completely empty fields (like ,,) as nil, and keep "" as ""
+        if field.nil? || (field.strip.empty? && !line[start..-1].start_with?(quote))
+          nil  # Treat empty fields as nil if the option is enabled
+        elsif field == ""
+          ""  # Keep explicit empty strings
+        else
+          field  # Return the field as is if it's not empty
+        end
+      else
+        # If the option is not enabled, treat empty fields as empty strings
+        field.nil? || field.strip.empty? ? "" : field
+      end
     end
+
+    def within_header_size?(header_size, elements)
+      header_size.nil? || elements.size < header_size
+    end
+
   end
 end
